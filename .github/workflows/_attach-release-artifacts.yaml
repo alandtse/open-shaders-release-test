@@ -148,30 +148,6 @@ jobs:
                     fi
                   done
 
-            # publish-release re-attaches only dist/*.7z, so an existing asset must be re-supplied.
-            - name: Stage experimental clang-cl DLL into dist
-              shell: bash
-              env:
-                  GH_TOKEN: ${{ secrets.token }}
-                  GH_REPO: ${{ github.repository }}
-                  RELEASE_TAG: ${{ inputs.tag }}
-              run: |
-                  set -euo pipefail
-                  asset="CommunityShaders_ClangCL-${RELEASE_TAG}.7z"
-                  target="dist/${asset}"
-                  rm -f "$target"
-                  if [ -d clang-dist ] && bash .github/scripts/package-clang-dll.sh clang-dist "$RELEASE_TAG" "$target" >/dev/null && 7z t "$target" >/dev/null; then
-                    echo "Staged fresh $target"
-                  else
-                    rm -f "$target"
-                    if gh release download "$RELEASE_TAG" --pattern "$asset" --dir dist 2>/dev/null && 7z t "$target" >/dev/null; then
-                      echo "Preserved existing $target"
-                    else
-                      rm -f "$target"
-                      echo "::warning::No usable clang-cl DLL this run; release ships without the experimental asset."
-                    fi
-                  fi
-
             # Reads dist/ShaderCache-{SE,VR}-<tag>.7z (already resolved fresh-or-
             # preserved above), not the raw shader-caches/ dirs the staging step
             # already consumed via mv. Replaces the plain AIO in place under its
@@ -214,16 +190,18 @@ jobs:
                     fi
                   done
 
-                  # The experimental asset (fresh or preserved, staged above) doubles as
-                  # the FOMOD's clang-cl option: same SKSE/Plugins/CommunityShaders.dll.
-                  clang_7z="dist/CommunityShaders_ClangCL-${RELEASE_TAG}.7z"
-                  if [ -f "$clang_7z" ]; then
+                  # The clang-cl lane's AIO supplies the optional experimental DLL; a missing or
+                  # unextractable artifact just means the FOMOD has no clang-cl page.
+                  clang_aio=$(find clang-dist -maxdepth 1 \( -name 'CommunityShaders_AIO-*.7z' -o -name 'CommunityShaders_AIO-*.zip' \) -print -quit 2>/dev/null || true)
+                  if [ -n "$clang_aio" ]; then
                     mkdir -p fomod-work/clang
-                    if 7z x -y -ofomod-work/clang "$clang_7z" >/dev/null; then
+                    if 7z x -y -ofomod-work/clang "$clang_aio" 'SKSE/Plugins/CommunityShaders.dll' >/dev/null; then
                       args+=(--clang-dll fomod-work/clang)
                     else
-                      echo "::warning::Could not extract ${clang_7z}; the FOMOD omits the clang-cl option."
+                      echo "::warning::Could not extract the clang-cl DLL; the FOMOD omits the clang-cl option."
                     fi
+                  else
+                    echo "::warning::No clang-cl build this run; the FOMOD omits the clang-cl option."
                   fi
 
                   # pyfomod imports distutils, removed from the stdlib in

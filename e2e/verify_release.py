@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 # caches: runtimes that must ship as standalone assets; options: FOMOD picker options;
-# fomod: whether the AIO must be FOMOD-wrapped; clang: whether the clang asset must exist.
+# fomod: whether the AIO must be FOMOD-wrapped; clang: whether the FOMOD must offer the clang-cl option.
 CLANG_OPTION = "clang-cl build (experimental)"
 EXPECT = {
     "valid": dict(caches={"SE", "VR"}, options={"SE/AE", "VR"}, fomod=True, clang=True),
@@ -78,16 +78,7 @@ def main():
                 check(b"MSVC-MARKER" in dll.read_bytes(), "Core keeps the default (MSVC) DLL")
                 check('priority="1" source="ClangCL/SKSE"' in config, "clang folder has an explicit priority")
 
-    clang_name = f"CommunityShaders_ClangCL-{args.tag}.7z"
-    has_clang = clang_name in names
-    check(has_clang == expect["clang"], f"clang asset {'present' if has_clang else 'absent'} as expected")
-    if has_clang:
-        tree = work / "clang"
-        extract(work / clang_name, tree)
-        dll = (tree / "SKSE/Plugins/CommunityShaders.dll").read_bytes()
-        check(dll[:2] == b"MZ" and b"CLANG-MARKER" in dll, "clang asset carries the clang DLL")
-        check(args.tag in (tree / "README_ClangCL.txt").read_text(encoding="utf-8"), "readme names the release tag")
-        check(not (tree / "Shaders").exists(), "clang asset holds only the DLL and readme")
+    check(not any("ClangCL" in name for name in names), "no standalone clang asset is published")
 
     shutil.rmtree(work, ignore_errors=True)
     if failures:
