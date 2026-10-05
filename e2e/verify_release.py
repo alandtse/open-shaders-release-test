@@ -10,7 +10,8 @@ from pathlib import Path
 
 # caches: runtimes that must ship as standalone assets; options: FOMOD picker options;
 # fomod: whether the AIO must be FOMOD-wrapped; clang: whether the FOMOD must offer the clang-cl option.
-CLANG_OPTION = "clang-cl build (experimental)"
+CLANG_OPTION = "clang-cl build (experimental, may be faster)"
+DEFAULT_OPTION = "Default build (recommended)"
 EXPECT = {
     "valid": dict(caches={"SE", "VR"}, options={"SE/AE", "VR"}, fomod=True, clang=True),
     "bad-se-cache": dict(caches={"VR"}, options={"VR"}, fomod=True, clang=True),
@@ -62,21 +63,26 @@ def main():
         extract(aio, tree)
         has_fomod = (tree / "fomod" / "ModuleConfig.xml").is_file()
         check(has_fomod == expect["fomod"], f"AIO is {'FOMOD-wrapped' if has_fomod else 'the plain AIO'} as expected")
-        dll = tree / ("Core/SKSE/Plugins/CommunityShaders.dll" if has_fomod else "SKSE/Plugins/CommunityShaders.dll")
+        dll_paths = [tree / "Core/SKSE/Plugins/CommunityShaders.dll", tree / "DefaultBuild/SKSE/Plugins/CommunityShaders.dll"] if has_fomod else [tree / "SKSE/Plugins/CommunityShaders.dll"]
+        dll = next((path for path in dll_paths if path.is_file()), dll_paths[0])
         check(dll.is_file() == (args.scenario != "aio-without-dll"), "plugin DLL presence matches the scenario")
         if has_fomod:
             config = (tree / "fomod" / "ModuleConfig.xml").read_text(encoding="utf-8-sig")
             options = set(re.findall(r'<plugin name="([^"]+)"', config))
-            wanted = set(expect["options"]) | ({CLANG_OPTION} if expect["clang"] else set())
+            wanted = set(expect["options"]) | ({CLANG_OPTION, DEFAULT_OPTION} if expect["clang"] else set())
             check(options == wanted, f"FOMOD options {sorted(options)} == {sorted(wanted)}")
-            for option in options - {CLANG_OPTION}:
+            for option in options - {CLANG_OPTION, DEFAULT_OPTION}:
                 subdir = {"SE/AE": "ShaderCache-SE-AE", "VR": "ShaderCache-VR"}[option]
                 check((tree / subdir / "ShaderCache" / "Manifest.json").is_file(), f"{option} option files are staged")
             if CLANG_OPTION in options:
                 staged = (tree / "ClangCL/SKSE/Plugins/CommunityShaders.dll").read_bytes()
                 check(b"CLANG-MARKER" in staged, "clang option stages the clang DLL")
-                check(b"MSVC-MARKER" in dll.read_bytes(), "Core keeps the default (MSVC) DLL")
-                check('priority="1" source="ClangCL/SKSE"' in config, "clang folder has an explicit priority")
+                default = (tree / "DefaultBuild/SKSE/Plugins/CommunityShaders.dll").read_bytes()
+                check(b"MSVC-MARKER" in default, "default option stages the default (MSVC) DLL")
+                check(not (tree / "Core/SKSE/Plugins/CommunityShaders.dll").exists(), "Core no longer carries a DLL")
+                check("priority" not in config, "no same-path priority overwrite")
+            else:
+                check((tree / "Core/SKSE/Plugins/CommunityShaders.dll").is_file(), "Core keeps the default DLL when no clang page is offered")
 
     check(not any("ClangCL" in name for name in names), "no standalone clang asset is published")
 

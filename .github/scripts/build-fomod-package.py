@@ -119,24 +119,27 @@ def parse_args():
 
 
 def build_clang_page(clang):
+    """Two radio options, each installing its own plugin DLL, so no installer has to
+    resolve two files with one destination (Vortex keeps the Core copy)."""
     page = pyfomod.Page()
     page.name = clang["page_name"]
 
     group = pyfomod.Group()
     group.name = clang["group_name"]
-    group.type = pyfomod.GroupType.ATMOSTONE
+    group.type = pyfomod.GroupType.EXACTLYONE
 
-    option = pyfomod.Option()
-    option.name = clang["name"]
-    option.description = clang["description"]
-    option.files[f"{clang['staging_subdir']}/SKSE/"] = "SKSE"
-    # pyfomod has no public priority API; without it, same-destination installs resolve by
-    # installer-specific order and a player could silently keep the MSVC DLL.
-    for entry in option.files._file_list:
-        entry._attrib["priority"] = "1"
-    option.type = pyfomod.OptionType.OPTIONAL
+    choices = (
+        (clang["default_name"], clang["default_description"], clang["default_staging_subdir"], True),
+        (clang["name"], clang["description"], clang["staging_subdir"], False),
+    )
+    for name, description, staging, default in choices:
+        option = pyfomod.Option()
+        option.name = name
+        option.description = description
+        option.files[f"{staging}/SKSE/"] = "SKSE"
+        option.type = pyfomod.OptionType.RECOMMENDED if default else pyfomod.OptionType.OPTIONAL
+        group.append(option)
 
-    group.append(option)
     page.append(group)
     return page
 
@@ -222,6 +225,25 @@ def main():
 
     shutil.copytree(args.core, args.output / "Core")
 
+    clang_available = False
+    if args.clang_dll is not None:
+        problem = clang_problem(args.clang_dll)
+        if problem:
+            print(f"::warning::Dropping the clang-cl DLL option: {problem}", file=sys.stderr)
+        else:
+            clang = config["clang_option"]
+            clang_target = args.output / clang["staging_subdir"] / PLUGIN_DLL
+            clang_target.parent.mkdir(parents=True)
+            shutil.copy2(args.clang_dll / PLUGIN_DLL, clang_target)
+            # The default DLL (and its PDB) leave Core so each choice installs exactly one.
+            default_dir = args.output / clang["default_staging_subdir"] / PLUGIN_DLL.parent
+            default_dir.mkdir(parents=True)
+            for name in (PLUGIN_DLL.name, PLUGIN_DLL.with_suffix(".pdb").name):
+                moved = args.output / "Core" / PLUGIN_DLL.parent / name
+                if moved.is_file():
+                    shutil.move(str(moved), default_dir / name)
+            clang_available = True
+
     verifier = load_cache_verifier()
     available_variants = []
     for variant in config["cache_variants"]:
@@ -234,17 +256,6 @@ def main():
             continue
         shutil.copytree(cache_dir, args.output / variant["staging_subdir"] / "ShaderCache")
         available_variants.append(variant)
-
-    clang_available = False
-    problem = clang_problem(args.clang_dll)
-    if args.clang_dll is not None:
-        if problem:
-            print(f"::warning::Dropping the clang-cl DLL option: {problem}", file=sys.stderr)
-        else:
-            clang_target = args.output / config["clang_option"]["staging_subdir"] / PLUGIN_DLL
-            clang_target.parent.mkdir(parents=True)
-            shutil.copy2(args.clang_dll / PLUGIN_DLL, clang_target)
-            clang_available = True
 
     root = build_root(args, config, project, available_variants, clang_available)
     errors = root.validate()

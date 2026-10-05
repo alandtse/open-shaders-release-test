@@ -223,7 +223,7 @@ jobs:
                   if [ -s "$tmp_7z" ] && 7z t "$tmp_7z" >/dev/null; then
                     listing=$(7z l -ba "$tmp_7z")
                   fi
-                  if ! grep -Eq 'fomod[/\]ModuleConfig\.xml' <<<"$listing" || ! grep -Eq 'Core[/\]SKSE[/\]Plugins[/\]CommunityShaders\.dll' <<<"$listing"; then
+                  if ! grep -Eq 'fomod[/\]ModuleConfig\.xml' <<<"$listing" || ! grep -Eq '(Core|DefaultBuild)[/\]SKSE[/\]Plugins[/\]CommunityShaders\.dll' <<<"$listing"; then
                     rm -f "$tmp_7z"
                     echo "::warning::FOMOD archive is missing, corrupt or incomplete; the release ships the plain AIO."
                     exit 0
