@@ -10,6 +10,7 @@ from pathlib import Path
 
 # caches: runtimes that must ship as standalone assets; options: FOMOD picker options;
 # fomod: whether the AIO must be FOMOD-wrapped; clang: whether the clang asset must exist.
+CLANG_OPTION = "clang-cl build (experimental)"
 EXPECT = {
     "valid": dict(caches={"SE", "VR"}, options={"SE/AE", "VR"}, fomod=True, clang=True),
     "bad-se-cache": dict(caches={"VR"}, options={"VR"}, fomod=True, clang=True),
@@ -66,10 +67,16 @@ def main():
         if has_fomod:
             config = (tree / "fomod" / "ModuleConfig.xml").read_text(encoding="utf-8-sig")
             options = set(re.findall(r'<plugin name="([^"]+)"', config))
-            check(options == expect["options"], f"FOMOD options {sorted(options)} == {sorted(expect['options'])}")
-            for option in options:
+            wanted = set(expect["options"]) | ({CLANG_OPTION} if expect["clang"] else set())
+            check(options == wanted, f"FOMOD options {sorted(options)} == {sorted(wanted)}")
+            for option in options - {CLANG_OPTION}:
                 subdir = {"SE/AE": "ShaderCache-SE-AE", "VR": "ShaderCache-VR"}[option]
                 check((tree / subdir / "ShaderCache" / "Manifest.json").is_file(), f"{option} option files are staged")
+            if CLANG_OPTION in options:
+                staged = (tree / "ClangCL/SKSE/Plugins/CommunityShaders.dll").read_bytes()
+                check(b"CLANG-MARKER" in staged, "clang option stages the clang DLL")
+                check(b"MSVC-MARKER" in dll.read_bytes(), "Core keeps the default (MSVC) DLL")
+                check('priority="1" source="ClangCL/SKSE"' in config, "clang folder has an explicit priority")
 
     clang_name = f"CommunityShaders_ClangCL-{args.tag}.7z"
     has_clang = clang_name in names

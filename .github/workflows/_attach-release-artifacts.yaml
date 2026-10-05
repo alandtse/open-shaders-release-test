@@ -214,6 +214,18 @@ jobs:
                     fi
                   done
 
+                  # The experimental asset (fresh or preserved, staged above) doubles as
+                  # the FOMOD's clang-cl option: same SKSE/Plugins/CommunityShaders.dll.
+                  clang_7z="dist/CommunityShaders_ClangCL-${RELEASE_TAG}.7z"
+                  if [ -f "$clang_7z" ]; then
+                    mkdir -p fomod-work/clang
+                    if 7z x -y -ofomod-work/clang "$clang_7z" >/dev/null; then
+                      args+=(--clang-dll fomod-work/clang)
+                    else
+                      echo "::warning::Could not extract ${clang_7z}; the FOMOD omits the clang-cl option."
+                    fi
+                  fi
+
                   # pyfomod imports distutils, removed from the stdlib in
                   # Python 3.12; setuptools>=60 vendors a distutils shim,
                   # and <80 keeps it (60 requires an explicit lower bound
