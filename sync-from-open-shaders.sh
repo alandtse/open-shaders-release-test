@@ -4,7 +4,7 @@
 set -euo pipefail
 src="$1"
 here="$(cd "$(dirname "$0")" && pwd)"
-copy() { mkdir -p "$here/$(dirname "$1")"; cp -r "$src/$1" "$here/$1"; }
+copy() { rm -rf "$here/$1"; mkdir -p "$here/$(dirname "$1")"; cp -r "$src/$1" "$here/$1"; }
 copy .github/workflows/_attach-release-artifacts.yaml
 copy .github/actions/publish-release
 copy .github/scripts
