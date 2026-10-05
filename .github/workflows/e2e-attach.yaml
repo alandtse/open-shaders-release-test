@@ -1,0 +1,95 @@
+name: e2e-attach
+
+on:
+    workflow_dispatch:
+        inputs:
+            scenario:
+                description: "Scenario to run (one per run)"
+                type: choice
+                required: true
+                default: valid
+                options:
+                    - valid
+                    - bad-se-cache
+                    - truncated-vr-blob
+                    - no-caches
+                    - no-clang
+                    - bad-clang-dll
+                    - aio-without-dll
+
+permissions:
+    contents: read
+
+env:
+    TAG: v0.0.0-e2e.${{ github.run_id }}
+
+jobs:
+    synth:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+            - name: Build synthetic artifacts
+              env:
+                  SCENARIO: ${{ inputs.scenario }}
+              run: python3 e2e/make_artifacts.py --scenario "$SCENARIO"
+            - name: Upload dist-artifacts
+              uses: actions/upload-artifact@v7
+              with:
+                  name: dist-artifacts
+                  path: e2e-out/dist-artifacts/
+            - name: Upload SE cache
+              uses: actions/upload-artifact@v7
+              with:
+                  name: ShaderCache-SE
+                  path: e2e-out/ShaderCache-SE/
+                  if-no-files-found: ignore
+            - name: Upload VR cache
+              uses: actions/upload-artifact@v7
+              with:
+                  name: ShaderCache-VR
+                  path: e2e-out/ShaderCache-VR/
+                  if-no-files-found: ignore
+            - name: Upload clang-cl build
+              uses: actions/upload-artifact@v7
+              with:
+                  name: dist-artifacts-clang-cl
+                  path: e2e-out/dist-artifacts-clang-cl/
+                  if-no-files-found: ignore
+
+    attach:
+        needs: synth
+        permissions:
+            contents: write
+            id-token: write
+            attestations: write
+        uses: ./.github/workflows/_attach-release-artifacts.yaml
+        with:
+            tag: v0.0.0-e2e.${{ github.run_id }}
+            draft: "true"
+        secrets:
+            token: ${{ secrets.GITHUB_TOKEN }}
+
+    verify:
+        needs: attach
+        if: always() && needs.synth.result == 'success'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GH_REPO: ${{ github.repository }}
+        steps:
+            - uses: actions/checkout@v6
+            - name: Check the draft release
+              if: needs.attach.result == 'success'
+              env:
+                  SCENARIO: ${{ inputs.scenario }}
+              run: python3 e2e/verify_release.py --scenario "$SCENARIO" --tag "$TAG"
+            - name: Fail if the attach job failed
+              if: needs.attach.result != 'success'
+              run: |
+                  echo "::error::attach job result: ${{ needs.attach.result }}"
+                  exit 1
+            - name: Delete the draft release and tag
+              if: always()
+              run: gh release delete "$TAG" --cleanup-tag --yes || true
