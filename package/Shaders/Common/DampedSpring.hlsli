@@ -74,3 +74,5 @@ namespace DampedSpring
 }
 
 #endif  // __DAMPED_SPRING_DEPENDENCY_HLSL__
+
+// release dry run marker
