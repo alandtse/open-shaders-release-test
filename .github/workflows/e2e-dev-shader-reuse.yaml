@@ -1,0 +1,70 @@
+name: e2e-dev-shader-reuse
+
+# Run e2e-fake-dev.yaml on the same ref first, then one scenario per run:
+#   reuse    finds the fake-dev run and republishes its four artifacts here
+#   no-match points the lookup at a workflow with no such artifacts and expects an empty run id
+
+on:
+    workflow_dispatch:
+        inputs:
+            scenario:
+                type: choice
+                required: true
+                default: reuse
+                options:
+                    - reuse
+                    - no-match
+
+permissions:
+    contents: read
+
+jobs:
+    reuse:
+        permissions:
+            contents: read
+            actions: read
+        uses: ./.github/workflows/_reuse-dev-shaders.yaml
+        with:
+            ref: ${{ github.sha }}
+            workflow: ${{ inputs.scenario == 'reuse' && 'e2e-fake-dev.yaml' || 'e2e-attach.yaml' }}
+
+    verify:
+        needs: reuse
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            actions: read
+        env:
+            SCENARIO: ${{ inputs.scenario }}
+            RUN_ID: ${{ needs.reuse.outputs.run-id }}
+            GH_TOKEN: ${{ github.token }}
+            GH_REPO: ${{ github.repository }}
+        steps:
+            - name: No-match yields an empty run id
+              if: inputs.scenario == 'no-match'
+              run: |
+                  [ -z "$RUN_ID" ] || { echo "::error::expected empty run id, got $RUN_ID"; exit 1; }
+                  n=$(gh api "repos/${GH_REPO}/actions/runs/${{ github.run_id }}/artifacts" --jq '.total_count')
+                  [ "$n" = 0 ] || { echo "::error::expected no imported artifacts, found $n"; exit 1; }
+
+            - name: Reuse found a fake-dev run on this SHA
+              if: inputs.scenario == 'reuse'
+              run: |
+                  [ -n "$RUN_ID" ] || { echo "::error::no fake-dev run found for ${{ github.sha }}"; exit 1; }
+                  [ "$(gh api "repos/${GH_REPO}/actions/runs/${RUN_ID}" --jq .head_sha)" = "${{ github.sha }}" ]
+
+            - name: Download the imported artifacts
+              if: inputs.scenario == 'reuse'
+              uses: actions/download-artifact@v7
+              with:
+                  pattern: "*"
+                  path: got
+
+            - name: Imported content is the fake-dev run's, retention is right
+              if: inputs.scenario == 'reuse'
+              run: |
+                  set -euo pipefail
+                  for a in CompiledShaderBinaries-SE CompiledShaderBinaries-VR shader-compile-timing-SE shader-compile-timing-VR; do
+                    [ "$(cat got/$a/sentinel.txt)" = "${RUN_ID}:${a}" ] || { echo "::error::wrong content in $a: $(cat got/$a/sentinel.txt)"; exit 1; }
+                  done
+                  gh api "repos/${GH_REPO}/actions/runs/${{ github.run_id }}/artifacts" --jq '.artifacts[] | "\(.name) expires \(.expires_at)"'

@@ -6,6 +6,7 @@ src="$1"
 here="$(cd "$(dirname "$0")" && pwd)"
 copy() { rm -rf "$here/$1"; mkdir -p "$here/$(dirname "$1")"; cp -r "$src/$1" "$here/$1"; }
 copy .github/workflows/_attach-release-artifacts.yaml
+copy .github/workflows/_reuse-dev-shaders.yaml
 copy .github/actions/publish-release
 copy .github/scripts
 copy .github/configs/fomod-metadata.yaml

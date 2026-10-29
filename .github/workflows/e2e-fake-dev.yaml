@@ -1,0 +1,24 @@
+name: e2e-fake-dev
+
+# Stands in for open-shaders' release-dev run: uploads the four artifacts _reuse-dev-shaders.yaml looks for.
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    fake:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                artifact: [CompiledShaderBinaries-SE, CompiledShaderBinaries-VR, shader-compile-timing-SE, shader-compile-timing-VR]
+        steps:
+            - run: |
+                  mkdir out
+                  echo "${{ github.run_id }}:${{ matrix.artifact }}" > out/sentinel.txt
+            - uses: actions/upload-artifact@v7
+              with:
+                  name: ${{ matrix.artifact }}
+                  path: out
