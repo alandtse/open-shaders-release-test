@@ -13,7 +13,13 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                artifact: [CompiledShaderBinaries-SE, CompiledShaderBinaries-VR, shader-compile-timing-SE, shader-compile-timing-VR]
+                artifact:
+                    [
+                        CompiledShaderBinaries-SE,
+                        CompiledShaderBinaries-VR,
+                        shader-compile-timing-SE,
+                        shader-compile-timing-VR,
+                    ]
         steps:
             - run: |
                   mkdir out

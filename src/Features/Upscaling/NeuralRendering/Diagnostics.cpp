@@ -255,8 +255,8 @@ namespace NR
 				throw std::runtime_error("Cannot open diagnostic trace");
 			traceFile << std::setprecision(9);
 			traceFile << "NRDiag/v2 CPU scheduling and camera trace. Thresholds: distance>" << kCameraCutDistance
-					  << ", directionDot<" << kCameraCutDirectionDot << ", projectionDelta>" << kProjectionCutThreshold << ".\n"
-					  << "Options: ";
+			          << ", directionDot<" << kCameraCutDirectionDot << ", projectionDelta>" << kProjectionCutThreshold << ".\n"
+			          << "Options: ";
 			for (size_t i = 0; i < kOptionBitNames.size(); ++i)
 				traceFile << (i ? "," : "") << kOptionBitNames[i].bit << '=' << kOptionBitNames[i].name;
 			traceFile << ".\nReset bits: ";
@@ -275,17 +275,17 @@ namespace NR
 		if (!traceFile)
 			return;
 		traceFile << "frame=" << frame.number << " options=" << frame.options << " outcome=" << Name(frame.outcome)
-				  << " eval=" << frame.evaluated << " reuse=" << frame.reused << " copy=" << frame.copied << " created=" << frame.created
-				  << " recreated=" << frame.recreated << " size=" << frame.width << 'x' << frame.height
-				  << " sourceFormat=" << frame.format << " proxyFormat=" << frame.proxyFormat
-				  << " calls=" << frame.calls << " duplicates=" << frame.duplicates << " upscale=" << frame.afterUpscale
-				  << " post=" << frame.afterPost << " mainChanged=" << frame.mainChanged
-				  << " fence=" << frame.completedFence << '/' << frame.submittedFence << '\n';
+		          << " eval=" << frame.evaluated << " reuse=" << frame.reused << " copy=" << frame.copied << " created=" << frame.created
+		          << " recreated=" << frame.recreated << " size=" << frame.width << 'x' << frame.height
+		          << " sourceFormat=" << frame.format << " proxyFormat=" << frame.proxyFormat
+		          << " calls=" << frame.calls << " duplicates=" << frame.duplicates << " upscale=" << frame.afterUpscale
+		          << " post=" << frame.afterPost << " mainChanged=" << frame.mainChanged
+		          << " fence=" << frame.completedFence << '/' << frame.submittedFence << '\n';
 		for (uint32_t i = 0; i < frame.eyeCount; ++i) {
 			const auto& c = frame.camera[i];
 			traceFile << "eye=" << i << " detected=" << c.detected << " reset=" << frame.reset[i] << " ngx=" << frame.result[i]
-					  << " distance=" << c.distance << " directionDot=" << c.directionDot << " projectionDelta=" << c.projectionDelta
-					  << " jitter=" << c.jitterX << ',' << c.jitterY << " dtMs=" << c.frameTimeMs;
+			          << " distance=" << c.distance << " directionDot=" << c.directionDot << " projectionDelta=" << c.projectionDelta
+			          << " jitter=" << c.jitterX << ',' << c.jitterY << " dtMs=" << c.frameTimeMs;
 			const std::array<const char*, 4> names{ " position=", " previous=", " enginePrevious=", " viewTranslation=" };
 			const std::array<std::array<float, 3>, 4> vectors{ c.position, c.previous, c.enginePrevious, c.viewTranslation };
 			for (size_t j = 0; j < vectors.size(); ++j)

@@ -662,7 +662,7 @@ namespace SceneSettingsUI
 				auto refreshedMember = std::ranges::find_if(
 					refreshedDescriptor->members, [&](const auto& candidate) {
 						return candidate.settingPath == member.settingPath && candidate.key == member.key &&
-					           candidate.componentIndex == member.componentIndex;
+						       candidate.componentIndex == member.componentIndex;
 					});
 				if (refreshedMember != refreshedDescriptor->members.end())
 					member.value = refreshedMember->value;

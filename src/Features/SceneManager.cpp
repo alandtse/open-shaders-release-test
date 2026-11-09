@@ -167,9 +167,9 @@ void SceneManager::RegisterUxActions()
 			const auto context = ParseFeatureSceneSet(args);
 			auto* manager = SceneSettingsManager::GetSingleton();
 			const auto& entries = context.type == SceneContextType::Interior  ? manager->GetEntries(SceneType::InteriorOnly) :
-		                          context.type == SceneContextType::TimeOfDay ? manager->GetEntries(SceneType::TimeOfDay) :
-		                          context.type == SceneContextType::Weather   ? manager->GetWeatherConfig(context.weatherId).entries :
-		                                                                        manager->GetLocationConfig(context.locationType, context.locationFormKey).entries;
+			                      context.type == SceneContextType::TimeOfDay ? manager->GetEntries(SceneType::TimeOfDay) :
+			                      context.type == SceneContextType::Weather   ? manager->GetWeatherConfig(context.weatherId).entries :
+			                                                                    manager->GetLocationConfig(context.locationType, context.locationFormKey).entries;
 			json result{ { "timeOfDayEnabled", manager->IsSceneTimeOfDayEnabled(context) }, { "entries", json::array() } };
 			for (size_t index = 0; index < entries.size(); ++index) {
 				const auto& entry = entries[index];
