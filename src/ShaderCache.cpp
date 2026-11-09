@@ -3037,7 +3037,7 @@ namespace SIE
 					return ShaderCacheResult{ a_blob, a_success ? ShaderCompilationTask::Status::Completed : ShaderCompilationTask::Status::Failed, system_clock::now(), fromDisk, a_gen };
 				});
 			if (outcome == Util::GenerationClaim::PublishOutcome::Published) {
-				logger::debug("Adding {} shader to map: {}", magic_enum ::enum_name(a_blob ? ShaderCompilationTask::Status::Completed : ShaderCompilationTask::Status::Failed), keyWithDescriptor);
+				logger::debug("Adding {} shader to map: {}", magic_enum::enum_name(a_blob ? ShaderCompilationTask::Status::Completed : ShaderCompilationTask::Status::Failed), keyWithDescriptor);
 			} else {
 				// A stale task must not publish; it would resurrect stale bytecode as a
 				// future ClaimCompilation cache hit.

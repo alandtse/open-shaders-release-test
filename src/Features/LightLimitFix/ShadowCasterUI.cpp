@@ -632,8 +632,8 @@ namespace ShadowCasterManager
 					// Full pointer (see the Mode column's PushID above for why).
 					ImGui::PushID(reinterpret_cast<void*>(key ^ 0xA1));
 					ImVec4 col4 = isSolo ?
-				                      ImVec4(0.85f, 0.7f, 0.15f, 1) :  // bright yellow when active
-				                      ImVec4(0.30f, 0.30f, 0.30f, 1);
+					                  ImVec4(0.85f, 0.7f, 0.15f, 1) :  // bright yellow when active
+					                  ImVec4(0.30f, 0.30f, 0.30f, 1);
 					ImVec4 colH = isSolo ? ImVec4(1.0f, 0.85f, 0.25f, 1) : ImVec4(0.45f, 0.45f, 0.45f, 1);
 					ImGui::PushStyleColor(ImGuiCol_Button, col4);
 					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, colH);

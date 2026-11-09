@@ -6423,8 +6423,8 @@ std::vector<SceneSettingsManager::CopyCandidate> SceneSettingsManager::BuildCopy
 		candidates.push_back({
 			.setting = identity,
 			.displayName = entry->displayName.empty() ?
-		                       GetSceneSettingDisplayName(identity.featureShortName, identity.settingPath, identity.settingKey) :
-		                       entry->displayName,
+			                   GetSceneSettingDisplayName(identity.featureShortName, identity.settingPath, identity.settingKey) :
+			                   entry->displayName,
 			.value = entry->value,
 			.compatible = compatible,
 			.conflicts = conflicts,
